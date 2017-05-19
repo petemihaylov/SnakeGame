@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <time.h>
-#define delay 1000000 // 1sec
+#define delay 800000 // 0.8sec
 
 
 struct coordinates_t{
@@ -22,31 +21,49 @@ void show_borders(void);
 struct snake_t start_position(void); 
 void snake_destroy(struct snake_t);
 void add_item(struct snake_t*, int);
+void go_up(struct snake_t*);
 
 int main(int argc, const char *argv[]){
 		system("clear");
 		struct snake_t snake;
 		show_borders();
 		snake = start_position();	
-		add_item(&snake, 3);
+		add_item(&snake, 4);
 		int head = snake.crd.x;
-		int flag = 1;
-		for(;head != 1; snake.crd.x = --head){
-			    
+
+		//starting state of movement
+		for(;head != 1; snake.crd.x = --head){ 
 				gotoxy(snake.crd.x, snake.crd.y);
 				for(int i = 0; i < snake.current; i++){			
 				    gotoxy(snake.crd.x++, snake.crd.y);
 					printf("%c", snake.snake_body[i]);
 				}
-				    gotoxy(snake.crd.x - 1, snake.crd.y);
+				    gotoxy(snake.crd.x, snake.crd.y);
 					printf(" ");
-				    getchar();
-				    usleep(delay);
+				      char c = getchar();	
+				      fflush(stdout);
+				      usleep(delay);
+							
 		}
+
 		system("clear");
 		return 0;
 }
 
+void go_up(struct snake_t *snake){
+	int current_y = snake->crd.y;
+	int current_x = snake->crd.x;
+    	for(;current_y !=  0;){
+						for(int i = 0; i < snake->current; i++){
+								if(i == 0){
+										gotoxy(current_x, --current_y);
+										printf("%c", snake->snake_body[i]);
+								}
+
+								//im not ready yet
+						}		
+    	}
+}
 
 void add_item(struct snake_t *snake, int n){
 		for(int i = 0; i < n + 1; i++){
