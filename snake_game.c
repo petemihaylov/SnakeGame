@@ -1,136 +1,213 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define delay 800000 // 0.8sec
+#include <pthread.h>
+#include <ncurses.h>
+#include <time.h>
+#include "ui.h"
 
+int max_y = 0;
+int max_x = 0;
+int sn_size = 4;
+int end_flag = 0;
+int dym_size = 4;
 
-struct coordinates_t{
-		int x;
-		int y;
-};
+int key_x = -1;
+int key_y = 0;
 
-struct snake_t{
-		char *snake_body;
-		int size;
-		int current;
-		struct coordinates_t crd;		
-};
+pthread_mutex_t mutex;
+pthread_t snake_pth;
+int food_y;
+int food_x;
+int food_count = 0;
+pthread_t food_pth;
 
-void gotoxy(int, int);
-void show_borders(void);
-struct snake_t start_position(void); 
-void snake_destroy(struct snake_t);
-void add_item(struct snake_t*, int);
-void go_up(struct snake_t*);
+struct Snake_t{
+	int x;
+	int y;
+	const char *elem;
+}*snake;
 
-int main(int argc, const char *argv[]){
-		system("clear");
-		struct snake_t snake;
-		show_borders();
-		snake = start_position();	
-		add_item(&snake, 4);
-		int head = snake.crd.x;
+int main(int argc, char *argv[]) {
 
-		//starting state of movement
-		for(;head != 1; snake.crd.x = --head){ 
-				gotoxy(snake.crd.x, snake.crd.y);
-				for(int i = 0; i < snake.current; i++){			
-				    gotoxy(snake.crd.x++, snake.crd.y);
-					printf("%c", snake.snake_body[i]);
-				}
-				    gotoxy(snake.crd.x, snake.crd.y);
-					printf(" ");
-				      char c = getchar();	
-				      fflush(stdout);
-				      usleep(delay);
-							
+ initscr();
+ noecho();
+ curs_set(FALSE);
+ getmaxyx(stdscr, max_y, max_x);
+ 
+ show_boarders();
+ pthread_mutex_init(&mutex, NULL);
+ init();
+
+	while(!end_flag) {
+		int ch = get_input();
+		switch(ch) {
+			case 'q':
+				game_end(food_count);
+				break;
+			// left arrow
+			case 'a':
+				pthread_mutex_lock(&mutex);
+				key_x = -1;
+				key_y = 0;
+				pthread_mutex_unlock(&mutex);
+				break;
+			// up arrow
+			case 'w':
+				pthread_mutex_lock(&mutex);
+				key_x = 0;
+				key_y = -1;
+				pthread_mutex_unlock(&mutex);
+				break;	
+			// right arrow
+			case 'd':
+				pthread_mutex_lock(&mutex);
+				key_x = 1;
+				key_y = 0;
+				pthread_mutex_unlock(&mutex);
+				break;
+			// down arrow
+			case 's':
+				pthread_mutex_lock(&mutex);
+				key_x = 0;
+				key_y = 1;
+				pthread_mutex_unlock(&mutex);
+				break;
 		}
+	}
+	game_end(food_count);
+	pthread_mutex_destroy(&mutex);
 
-		system("clear");
-		return 0;
+ endwin();
 }
 
-void go_up(struct snake_t *snake){
-	int current_y = snake->crd.y;
-	int current_x = snake->crd.x;
-    	for(;current_y !=  0;){
-						for(int i = 0; i < snake->current; i++){
-								if(i == 0){
-										gotoxy(current_x, --current_y);
-										printf("%c", snake->snake_body[i]);
-								}
+void* generate_food(){
 
-								//im not ready yet
-						}		
-    	}
-}
+	sleep(2);
+	srand(time(NULL));
+	
+	while(!end_flag){
 
-void add_item(struct snake_t *snake, int n){
-		for(int i = 0; i < n + 1; i++){
-				if(snake->current == snake->size){
-						snake->size *= 2;
-						snake->snake_body = realloc(snake->snake_body, snake->size * sizeof(char));
-				}
-			   
-				if(snake->current == 0){
-						snake->snake_body[snake->current++] = '>';
-				}else {
-						snake->snake_body[snake->current++] = 'o';
+		do{	
+		   food_x = (rand() % ((max_x - 1) - 1) + 1);
+		   food_y = (rand() % ((max_y - 1) - 1) + 1);
+		}while(eat_myself(food_x, food_y));
+
+		mvprintw(food_y, food_x, "f");	
+		refresh();
+		sleep(4); 
+		mvprintw(food_y, food_x, " ");	
+	}
+
+	return NULL;
+} 
+
+void* update(){
+	int last_x, last_y;
+	int temp_x, temp_y;
+	while(!end_flag){
+		pthread_mutex_lock(&mutex);
+	 	for (int i = 0; i < sn_size; ++i)
+	 	{	
+
+	 		if(i == 0){
+	 			last_x = snake[i].x;
+	 	    	last_y = snake[i].y;
+	 			mvprintw(snake[i].y, snake[i].x, " ");
+	 			refresh();
+	 			snake[i].x += key_x;
+	 			snake[i].y += key_y;
+	 		}else{
+	 			temp_x = snake[i].x;
+	 			temp_y = snake[i].y;
+	 		   
+	 			snake[i].x = last_x;
+	 			snake[i].y = last_y;
+
+	 			last_x = temp_x;
+	 			last_y = temp_y;
+	 		}
+
+	 		mvprintw(snake[i].y, snake[i].x, snake[i].elem);
+	 		mvprintw(last_y, last_x, " ");	
+			refresh();
+			
+			if(snake[i].x <= 0 || snake[i].x >= (max_x - 1) || snake[i].y <= 0 || snake[i].y >= (max_y - 1) || eat_myself(snake[0].x, snake[0].y)){
+				end_flag = 1;
 			}
+	 	}
+	 	if(food_x == snake[0].x && food_y == snake[0].y){
+				food_count++;
+				add_snake_body();
 		}
+		pthread_mutex_unlock(&mutex);		
+	 	usleep(80000);
+	 }
+	 return NULL;
 }
 
-void snake_destroy(struct snake_t snake){
-   free(snake.snake_body);
+void init(){
+ snake =  malloc(dym_size * sizeof(struct Snake_t));
+ for (int i = 0; i < sn_size; ++i){
 
+ 	if(i == 0 )snake[i].elem = "#";
+ 	else snake[i].elem = "o";
+ 	mvprintw(snake[i].y = max_y/2,	snake[i].x = max_x/2 + i, snake[i].elem);	
+	refresh();
+ }
+	pthread_create(&snake_pth, NULL, update, NULL); 
+	pthread_create(&food_pth, NULL, generate_food, NULL); 
 }
 
-struct snake_t start_position(){
-		struct snake_t snake;
-		snake.current = 0;
-		snake.size = 1;
-		snake.snake_body = malloc(snake.size * sizeof(char));
-		
-		snake.crd.x = 25;
-		snake.crd.y = 12;
-
-		return snake;
+int eat_myself(int x, int y){
+	for (int i = 1; i < sn_size; ++i)
+	{
+		if(snake[i].x == x && snake[i].y == y){
+			return 1;
+		}	
+	}
+	return 0;
 }
 
-void show_borders(){
+void add_snake_body(){
+	 sn_size++;
+	 if(sn_size >= dym_size){
+	 	dym_size *= 2;
+	 	snake =  realloc(snake ,dym_size * sizeof(struct Snake_t));
+	 }
+	 snake[sn_size - 1].x = snake[sn_size - 2].x + 1;
+	 snake[sn_size - 1].y = snake[sn_size - 2].y;
+	 snake[sn_size - 1].elem = "o";
+} 
 
-		int width = 50;
-		int heigth = 25;
-		char borders[heigth][width];
-        
-		//top 
-		for(int i = 0; i < width; i++){
-				    borders[0][i] = '-';
-					printf("%c", borders[0][i]);
+void show_boarders(){
+		// top border
+		for(int x = 0; x < max_x; x++) {
+			mvprintw(0, x, "-");	
+			refresh();
 		}
-		printf("\n");
-		//left and rigth borders
-		for(int i = 1; i < heigth; i++){
-				    borders[i][0] = '|';
-					borders[i][width] = '|';
-
-				    printf("%c", borders[i][0]);
-					 //space 
-					 for(int k = 0; k < width - 2; k++){
-					 		printf(" ");	
-					 }
-					printf("%c", borders[i][width]);
-					printf("\n");
+		//	left and rigth borders
+		for(int y = 1; y < max_y; y++){
+				    mvprintw(y, 0, "|");
+				    mvprintw(y, max_x - 1, "|");
+				    refresh();
 		}
 		//bottom		
-		for(int i = 0; i < width; i++){
-				    borders[heigth][i] = '-';
-					printf("%c", borders[heigth][i]);
+		for(int x = 0; x < max_x; x++) {
+			mvprintw(max_y - 1, x, "-");	
+			refresh();
 		}
 }
 
-void gotoxy(int x,int y)
-{
-		    printf("%c[%d;%df",0x1B,y,x);
+int	get_input(){
+	return getch();
 }
 
+void game_end(int zombies) {
+	pthread_mutex_lock(&mutex);
+	endwin();
+	pthread_mutex_unlock(&mutex);
+	
+	pthread_mutex_destroy(&mutex);
+	printf("High score: %d\n", food_count);
+	exit(0);
+}
