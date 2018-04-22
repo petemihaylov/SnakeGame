@@ -7,7 +7,7 @@
 
 int max_y = 0;
 int max_x = 0;
-int sn_size = 4;
+int sn_size = 2;
 int end_flag = 0;
 int dym_size = 4;
 
@@ -16,10 +16,10 @@ int key_y = 0;
 
 pthread_mutex_t mutex;
 pthread_t snake_pth;
+pthread_t food_pth;
 int food_y;
 int food_x;
 int food_count = 0;
-pthread_t food_pth;
 
 struct Snake_t{
 	int x;
@@ -91,11 +91,11 @@ void* generate_food(){
 		   food_x = (rand() % ((max_x - 1) - 1) + 1);
 		   food_y = (rand() % ((max_y - 1) - 1) + 1);
 		}while(eat_myself(food_x, food_y));
-
+		
 		mvprintw(food_y, food_x, "f");	
 		refresh();
 		sleep(4); 
-		mvprintw(food_y, food_x, " ");	
+		mvprintw(food_y, food_x, " ");
 	}
 
 	return NULL;
@@ -140,7 +140,7 @@ void* update(){
 				add_snake_body();
 		}
 		pthread_mutex_unlock(&mutex);		
-	 	usleep(80000);
+	 	usleep(70000);
 	 }
 	 return NULL;
 }
@@ -154,6 +154,7 @@ void init(){
  	mvprintw(snake[i].y = max_y/2,	snake[i].x = max_x/2 + i, snake[i].elem);	
 	refresh();
  }
+
 	pthread_create(&snake_pth, NULL, update, NULL); 
 	pthread_create(&food_pth, NULL, generate_food, NULL); 
 }
@@ -208,6 +209,6 @@ void game_end(int zombies) {
 	pthread_mutex_unlock(&mutex);
 	
 	pthread_mutex_destroy(&mutex);
-	printf("High score: %d\n", food_count);
+	printf("Score: %d\n", food_count);
 	exit(0);
 }
