@@ -4,6 +4,8 @@
 
 Classic snake game for the terminal, made with C and ncurses. Guide the snake to eat the food and grow, while avoiding collisions with its own body!
 
+[Download latest Linux binary](https://github.com/petemihaylov/SnakeGame/actions/runs/11539518469)
+
 ## Features
 - **Boundary Wrapping**: The snake wraps around the screen edges, reappearing on the opposite side.
 - **Self-Collision Detection**: Game ends only when the snake collides with itself.
@@ -12,7 +14,7 @@ Classic snake game for the terminal, made with C and ncurses. Guide the snake to
 ## Dependencies
 Install the ncurses library if you don't already have it:
 ```bash
-sudo apt-get install libncurses5-dev
+sudo apt-get install -y libncurses5-dev
 ```
 
 ## Usage
