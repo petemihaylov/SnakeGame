@@ -14,22 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        build_type: [Release]
-        c_compiler: [gcc, clang, cl]
-        include:
-          - os: windows-latest
-            c_compiler: cl
-          - os: ubuntu-latest
-            c_compiler: gcc
-          - os: ubuntu-latest
-            c_compiler: clang
-        exclude:
-          - os: windows-latest
-            c_compiler: gcc
-          - os: windows-latest
-            c_compiler: clang
-          - os: ubuntu-latest
-            c_compiler: cl
 
     steps:
     - name: Checkout code
@@ -39,21 +23,17 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: sudo apt-get install -y libncurses5-dev
 
-    - name: Configure CMake
-      run: |
-        cmake -B build \
-              -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} \
-              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-              -S .
-      shell: bash
-
-    - name: Build
-      run: |
-        cmake --build build --config ${{ matrix.build_type }}
-      shell: bash
+    - name: Build with Makefile on Linux
+      if: matrix.os == 'ubuntu-latest'
+      run: make
 
     - name: Archive the compiled game
+      if: matrix.os == 'ubuntu-latest'
       uses: actions/upload-artifact@v3
       with:
-        name: snake-game-${{ matrix.os }}-${{ matrix.c_compiler }}
-        path: ./build/snake
+        name: snake-game-linux
+        path: ./snake
+
+    - name: Clean up
+      if: matrix.os == 'ubuntu-latest'
+      run: make clean
