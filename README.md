@@ -4,7 +4,7 @@
 
 Classic snake game for the terminal, made with C and ncurses. Guide the snake to eat the food and grow, while avoiding collisions with its own body!
 
-[Download latest Linux binary](https://github.com/petemihaylov/SnakeGame/actions/runs/11539518469)
+[Download latest Linux binary](https://github.com/petemihaylov/snake-game/actions/runs/11539518469)
 
 ## Features
 - **Boundary Wrapping**: The snake wraps around the screen edges, reappearing on the opposite side.
